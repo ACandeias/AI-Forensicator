@@ -44,11 +44,9 @@ AIFT does **not** require network access, root/sudo privileges, or write access 
 
 ## Reporting Vulnerabilities
 
-If you discover a security vulnerability in AIFT, please report it responsibly:
+If you discover a security vulnerability in AIFT, please report it by [opening an issue on GitHub](https://github.com/ACandeias/AI-Forensicator/issues).
 
-1. **Do NOT open a public issue.**
-2. Email: **security@example.com** (or open a private security advisory on GitHub)
-3. Include: description, reproduction steps, and potential impact.
-4. We will acknowledge receipt within 48 hours and aim to release a fix within 7 days.
+1. Include: description, reproduction steps, and potential impact.
+2. We will acknowledge receipt within 48 hours and aim to release a fix within 7 days.
 
 Thank you for helping keep AIFT safe.
