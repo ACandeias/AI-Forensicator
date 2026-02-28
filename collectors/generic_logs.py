@@ -178,7 +178,7 @@ class GenericLogsCollector(AbstractCollector):
         """Run system_profiler to find installed AI applications."""
         try:
             result = subprocess.run(
-                ["system_profiler", "SPApplicationsDataType"],
+                ["/usr/sbin/system_profiler", "SPApplicationsDataType"],
                 capture_output=True,
                 text=True,
                 timeout=30,

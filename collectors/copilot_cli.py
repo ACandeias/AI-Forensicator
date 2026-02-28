@@ -175,6 +175,20 @@ class CopilotCLICollector(AbstractCollector):
 
         return results
 
+    def _redact_env_values(self, obj):
+        """Recursively redact values in 'env' dict blocks."""
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                if key == "env" and isinstance(value, dict):
+                    result[key] = {k: "[REDACTED]" for k in value}
+                else:
+                    result[key] = self._redact_env_values(value)
+            return result
+        if isinstance(obj, list):
+            return [self._redact_env_values(item) for item in obj]
+        return obj
+
     # ------------------------------------------------------------------
     # 3. mcp-config.json -- MCP (Model Context Protocol) configuration
     # ------------------------------------------------------------------
@@ -193,7 +207,9 @@ class CopilotCLICollector(AbstractCollector):
         fmeta = self._file_metadata(path)
         file_hash = self._hash_file(path)
 
-        raw_text = json.dumps(data)
+        # Redact env values in MCP config before sanitization
+        redacted_data = self._redact_env_values(data)
+        raw_text = json.dumps(redacted_data)
         sanitized = sanitize_content(raw_text)
 
         # Extract summary info about MCP configuration
@@ -218,7 +234,7 @@ class CopilotCLICollector(AbstractCollector):
                 "filename": "mcp-config.json",
                 "mcp_server_count": server_count,
                 "mcp_server_names": server_names,
-                "credential_risk": self._contains_credentials(raw_text),
+                "env_values_redacted": True,
             },
         ))
 

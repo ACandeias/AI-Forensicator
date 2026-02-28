@@ -144,13 +144,20 @@ def export_jsonl(
 # Markdown Report
 # ------------------------------------------------------------------
 
+def _md_escape(text: str) -> str:
+    """Escape pipe characters and HTML tags for safe Markdown table cells."""
+    text = text.replace("|", "\\|")
+    text = text.replace("<", "&lt;").replace(">", "&gt;")
+    return text
+
+
 def _md_table(headers: List[str], rows: List[List[str]]) -> str:
     """Build a simple Markdown table."""
     lines = []  # type: List[str]
-    lines.append("| " + " | ".join(headers) + " |")
+    lines.append("| " + " | ".join(_md_escape(h) for h in headers) + " |")
     lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
     for row in rows:
-        lines.append("| " + " | ".join(row) + " |")
+        lines.append("| " + " | ".join(_md_escape(c) for c in row) + " |")
     return "\n".join(lines)
 
 

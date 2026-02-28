@@ -48,9 +48,11 @@ class AbstractCollector(ABC):
 
     # --- File helpers ---
 
-    def _hash_file(self, path: str) -> Optional[str]:
-        """SHA-256 hash of a file, read in 64KB chunks."""
+    def _hash_file(self, path: str, max_bytes: int = MAX_FILE_READ_BYTES) -> Optional[str]:
+        """SHA-256 hash of a file, read in 64KB chunks. Skips files over max_bytes."""
         try:
+            if os.path.getsize(path) > max_bytes:
+                return None
             h = hashlib.sha256()
             with open(path, "rb") as f:
                 while True:
@@ -65,11 +67,11 @@ class AbstractCollector(ABC):
     def _safe_read_text(self, path: str, max_bytes: int = MAX_FILE_READ_BYTES) -> Optional[str]:
         """Read a text file safely with size guard and encoding fallback."""
         try:
-            size = os.path.getsize(path)
-            if size > max_bytes:
-                return None
             with open(path, "r", encoding="utf-8", errors="replace") as f:
-                return f.read()
+                data = f.read(max_bytes + 1)
+                if len(data) > max_bytes:
+                    return None
+                return data
         except (OSError, IOError):
             return None
 
@@ -86,6 +88,9 @@ class AbstractCollector(ABC):
     def _safe_read_jsonl(self, path: str) -> Generator[Dict[str, Any], None, None]:
         """Yield parsed JSON objects from a JSONL file, line by line."""
         try:
+            fsize = os.path.getsize(path)
+            if fsize > MAX_FILE_READ_BYTES:
+                return
             with open(path, "r", encoding="utf-8", errors="replace") as f:
                 for line in f:
                     line = line.strip()
@@ -186,6 +191,7 @@ class AbstractCollector(ABC):
         self, db_path: str, query: str, params: Optional[Tuple] = None
     ) -> List[Dict[str, Any]]:
         """Open a SQLite DB in immutable mode and run a read query."""
+        import logging
         results = []
         uri = "file:{}?immutable=1".format(urllib.parse.quote(db_path))
         try:
@@ -194,8 +200,10 @@ class AbstractCollector(ABC):
             cursor = conn.execute(query, params or ())
             results = [dict(row) for row in cursor.fetchall()]
             conn.close()
-        except (sqlite3.OperationalError, sqlite3.DatabaseError):
-            pass
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as exc:
+            logging.getLogger("aift").debug(
+                "SQLite read failed for %s: %s", db_path, exc
+            )
         return results
 
     # --- LevelDB string extraction ---
@@ -220,6 +228,9 @@ class AbstractCollector(ABC):
             if os.path.islink(fpath):
                 continue
             try:
+                fsize = os.path.getsize(fpath)
+                if fsize > MAX_FILE_READ_BYTES:
+                    continue
                 with open(fpath, "rb") as f:
                     data = f.read()
             except (OSError, IOError):

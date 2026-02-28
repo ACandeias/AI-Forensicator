@@ -36,6 +36,9 @@ def ensure_db() -> str:
     os.makedirs(DB_DIR, mode=0o700, exist_ok=True)
     conn = _get_connection()
     try:
+        # Restrict DB file permissions to owner-only
+        if os.path.isfile(DB_PATH):
+            os.chmod(DB_PATH, 0o600)
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS artifacts (
                 id TEXT PRIMARY KEY,
@@ -90,7 +93,7 @@ def insert_artifact(artifact: AIArtifact) -> None:
         cols = ", ".join(ARTIFACT_COLUMNS)
         values = [d[c] for c in ARTIFACT_COLUMNS]
         conn.execute(
-            "INSERT OR REPLACE INTO artifacts ({}) VALUES ({})".format(cols, placeholders),
+            "INSERT OR IGNORE INTO artifacts ({}) VALUES ({})".format(cols, placeholders),
             values,
         )
         conn.commit()
@@ -106,7 +109,7 @@ def insert_artifacts_batch(artifacts: List[AIArtifact]) -> int:
     try:
         placeholders = ", ".join(["?"] * len(ARTIFACT_COLUMNS))
         cols = ", ".join(ARTIFACT_COLUMNS)
-        sql = "INSERT OR REPLACE INTO artifacts ({}) VALUES ({})".format(cols, placeholders)
+        sql = "INSERT OR IGNORE INTO artifacts ({}) VALUES ({})".format(cols, placeholders)
         rows = []
         for a in artifacts:
             d = a.to_dict()

@@ -143,6 +143,20 @@ class CagentCollector(AbstractCollector):
 
         return results
 
+    def _redact_env_values(self, obj):
+        """Recursively redact values in 'env' dict blocks."""
+        if isinstance(obj, dict):
+            result = {}
+            for key, value in obj.items():
+                if key == "env" and isinstance(value, dict):
+                    result[key] = {k: "[REDACTED]" for k in value}
+                else:
+                    result[key] = self._redact_env_values(value)
+            return result
+        if isinstance(obj, list):
+            return [self._redact_env_values(item) for item in obj]
+        return obj
+
     # ------------------------------------------------------------------
     # 2. Config files in root
     # ------------------------------------------------------------------
@@ -167,7 +181,9 @@ class CagentCollector(AbstractCollector):
 
             data = self._safe_read_json(fpath)
             if data is not None:
-                preview_text = json.dumps(data)
+                # Redact env values before serialization
+                redacted = self._redact_env_values(data)
+                preview_text = json.dumps(redacted)
             else:
                 text = self._safe_read_text(fpath)
                 if text is None:

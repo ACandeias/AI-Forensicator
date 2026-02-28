@@ -30,6 +30,13 @@ CREDENTIAL_PATTERNS = [
     re.compile(r'pk_live_[a-zA-Z0-9]{20,}'),         # Stripe publishable keys
     re.compile(r'xoxb-[a-zA-Z0-9-]{20,}'),           # Slack bot tokens
     re.compile(r'xoxp-[a-zA-Z0-9-]{20,}'),           # Slack user tokens
+    re.compile(r'github_pat_[a-zA-Z0-9_]{22,}'),      # GitHub fine-grained tokens
+    re.compile(r'glpat-[a-zA-Z0-9\-]{20,}'),           # GitLab personal tokens
+    re.compile(r'AIza[0-9A-Za-z\-_]{35}'),             # Google Cloud API keys
+    re.compile(r'npm_[a-zA-Z0-9]{36}'),                # npm tokens
+    re.compile(r'pypi-[a-zA-Z0-9\-_]{16,}'),           # PyPI tokens
+    re.compile(r'eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+'),  # JWT tokens
+    re.compile(r'-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'),  # SSH private keys
     re.compile(r'(?=[a-fA-F0-9]*[a-fA-F])(?=[a-fA-F0-9]*[0-9])[a-fA-F0-9]{40,}'),  # Long hex tokens (mixed digits+letters, 40+ chars)
     re.compile(r'(?=[A-Za-z0-9+/]*[A-Z])(?=[A-Za-z0-9+/]*[a-z])(?=[A-Za-z0-9+/]*[0-9])[A-Za-z0-9+/]{40,}={0,2}'),  # Long base64 tokens (mixed case+digits, 40+ chars)
 ]
@@ -37,8 +44,11 @@ CREDENTIAL_PATTERNS = [
 # Files that should never have content extracted
 CREDENTIAL_FILES = {
     '.env', '.env.local', '.env.production', '.env.development',
+    '.env.staging', '.env.test',
     'credentials.json', 'auth.json', 'hosts.yml', '.netrc',
     '.npmrc', '.pypirc', 'token', 'token.json',
+    'service-account.json', 'keyfile.json',
+    'id_rsa', 'id_ed25519', 'id_ecdsa',
 }
 
 # Artifact source paths

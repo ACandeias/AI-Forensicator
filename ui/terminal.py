@@ -2,6 +2,7 @@
 
 import json
 import os
+import sqlite3
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -136,7 +137,8 @@ def _handle_collection() -> None:
                         collector.name, len(artifacts)
                     ),
                 )
-            except Exception as exc:
+            except (OSError, IOError, ValueError, TypeError, KeyError,
+                    AttributeError, sqlite3.Error, json.JSONDecodeError) as exc:
                 err_msg = "{}: {}".format(collector.name, exc)
                 errors.append(err_msg)
                 progress.update(
@@ -397,7 +399,7 @@ def _handle_export() -> None:
         console.print(
             "[bold green]Exported to {}[/]".format(result_path)
         )
-    except Exception as exc:
+    except (OSError, IOError, ValueError, sqlite3.Error) as exc:
         console.print("[bold red]Export failed: {}[/]".format(exc))
 
 
@@ -483,7 +485,8 @@ def interactive_menu() -> None:
         except KeyboardInterrupt:
             console.print("\n[bold bright_cyan]Goodbye![/]")
             break
-        except Exception as exc:
+        except (OSError, IOError, ValueError, TypeError, KeyError,
+                AttributeError, sqlite3.Error, json.JSONDecodeError) as exc:
             console.print("[bold red]Error: {}[/]".format(exc))
 
 

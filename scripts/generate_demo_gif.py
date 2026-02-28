@@ -49,8 +49,8 @@ FONT_PATH = "/System/Library/Fonts/Menlo.ttc"
 try:
     FONT = ImageFont.truetype(FONT_PATH, FONT_SIZE)
     FONT_BOLD = ImageFont.truetype(FONT_PATH, FONT_SIZE, index=1)
-except Exception:
-    FONT = ImageFont.truetype(FONT_PATH, FONT_SIZE)
+except (OSError, IOError):
+    FONT = ImageFont.load_default()
     FONT_BOLD = FONT
 
 

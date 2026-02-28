@@ -58,7 +58,8 @@ def _cmd_collect(args: argparse.Namespace) -> None:
             artifacts = collector.collect()
             all_artifacts.extend(artifacts)
             print("  {} - {} artifacts".format(collector.name, len(artifacts)))
-        except (OSError, IOError, ValueError, sqlite3.Error, json.JSONDecodeError) as exc:
+        except (OSError, IOError, ValueError, TypeError, KeyError,
+                AttributeError, sqlite3.Error, json.JSONDecodeError) as exc:
             err_msg = "{}: {}".format(collector.name, exc)
             errors.append(err_msg)
             print("  {} - ERROR: {}".format(collector.name, exc))
@@ -87,10 +88,11 @@ def _cmd_collect(args: argparse.Namespace) -> None:
 
 def _cmd_browse(args: argparse.Namespace) -> None:
     """Browse artifacts with optional filters."""
+    capped_limit = min(args.limit, 100000)
     artifacts = db.query_artifacts(
         source_tool=args.source,
         artifact_type=args.type,
-        limit=args.limit,
+        limit=capped_limit,
     )
     if not artifacts:
         print("No artifacts found.")
@@ -234,7 +236,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp_browse = subparsers.add_parser("browse", help="Browse collected artifacts")
     sp_browse.add_argument("--source", default=None, help="Filter by source tool")
     sp_browse.add_argument("--type", default=None, help="Filter by artifact type")
-    sp_browse.add_argument("--limit", type=int, default=50, help="Max results")
+    sp_browse.add_argument("--limit", type=int, default=50,
+                           help="Max results (capped at 100000)")
 
     # stats
     subparsers.add_parser("stats", help="Show summary statistics")

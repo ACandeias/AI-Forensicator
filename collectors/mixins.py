@@ -220,7 +220,7 @@ class OpenAIDataMixin:
         try:
             with open(path, "rb") as f:
                 return plistlib.load(f)
-        except (plistlib.InvalidFileException, OSError, IOError, Exception):
+        except (plistlib.InvalidFileException, OSError, IOError, ValueError, OverflowError):
             return None
 
     def _plist_to_json_safe(self, obj):

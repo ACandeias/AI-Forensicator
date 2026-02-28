@@ -279,6 +279,7 @@ class LMStudioCollector(LocalLLMRunnerMixin, AbstractCollector):
                     fmeta = self._file_metadata(fpath)
                     file_hash = self._hash_file(fpath)
                     text = self._safe_read_text(fpath)
+                    sanitized_text = sanitize_content(text or "")
 
                     results.append(self._make_artifact(
                         artifact_type="server_log",
@@ -287,7 +288,7 @@ class LMStudioCollector(LocalLLMRunnerMixin, AbstractCollector):
                         file_size_bytes=fmeta.get("file_size_bytes"),
                         file_modified=fmeta.get("file_modified"),
                         file_created=fmeta.get("file_created"),
-                        content_preview=self._content_preview(text or ""),
+                        content_preview=self._content_preview(sanitized_text),
                         token_estimate=self._estimate_tokens(text or ""),
                         metadata={
                             "log_filename": fname,

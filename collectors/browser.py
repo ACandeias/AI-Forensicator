@@ -58,7 +58,8 @@ class SafariCollector(AbstractCollector):
         # We cannot use _safe_sqlite_read here because we need to catch
         # DatabaseError specifically and provide a meaningful message.
         artifacts = []  # type: List[AIArtifact]
-        uri = "file:{}?immutable=1".format(db_path)
+        import urllib.parse
+        uri = "file:{}?immutable=1".format(urllib.parse.quote(db_path))
 
         try:
             conn = sqlite3.connect(uri, uri=True)
