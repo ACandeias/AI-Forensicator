@@ -5,17 +5,12 @@ import sqlite3
 from typing import List, Optional
 
 from collectors.base import AbstractCollector
+from collectors.mixins import ChromiumHistoryMixin, _build_url_or_clause
 from config import AI_URL_PATTERNS, ARTIFACT_PATHS
 from schema import AIArtifact
 
 
-def _build_url_or_clause(column: str, patterns: List[str]) -> str:
-    """Build a SQL OR clause matching a column against AI_URL_PATTERNS."""
-    clauses = ["{} LIKE ?".format(column) for _ in patterns]
-    return "(" + " OR ".join(clauses) + ")"
-
-
-class ChromeCollector(AbstractCollector):
+class ChromeCollector(ChromiumHistoryMixin, AbstractCollector):
     """Collect AI-related browsing history from Google Chrome."""
 
     @property
@@ -29,45 +24,7 @@ class ChromeCollector(AbstractCollector):
         return os.path.isfile(self._history_path())
 
     def collect(self) -> List[AIArtifact]:
-        db_path = self._history_path()
-        if not os.path.isfile(db_path):
-            return []
-
-        url_filter = _build_url_or_clause("u.url", AI_URL_PATTERNS)
-        query = (
-            "SELECT u.url, u.title, v.visit_time, v.visit_duration "
-            "FROM urls u JOIN visits v ON u.id = v.url "
-            "WHERE " + url_filter + " "
-            "ORDER BY v.visit_time DESC"
-        )
-
-        rows = self._safe_sqlite_read(db_path, query, tuple(AI_URL_PATTERNS))
-        artifacts = []  # type: List[AIArtifact]
-
-        for row in rows:
-            url = row.get("url", "")
-            title = row.get("title", "")
-            visit_time = row.get("visit_time")
-            visit_duration = row.get("visit_duration", 0)
-
-            ts = self._parse_chrome_timestamp(visit_time)
-            preview = self._content_preview("{} - {}".format(title, url))
-
-            metadata = {
-                "url": url,
-                "title": title,
-                "visit_duration_us": visit_duration,
-            }
-
-            artifacts.append(self._make_artifact(
-                artifact_type="browser_history",
-                timestamp=ts,
-                file_path=db_path,
-                content_preview=preview,
-                metadata=metadata,
-            ))
-
-        return artifacts
+        return self._collect_chromium_history(self._history_path())
 
 
 class SafariCollector(AbstractCollector):
@@ -150,7 +107,7 @@ class SafariCollector(AbstractCollector):
         return artifacts
 
 
-class ArcCollector(AbstractCollector):
+class ArcCollector(ChromiumHistoryMixin, AbstractCollector):
     """Collect AI-related browsing history from Arc browser."""
 
     @property
@@ -159,65 +116,10 @@ class ArcCollector(AbstractCollector):
 
     def _find_history_db(self) -> Optional[str]:
         """Search for Chromium-style History file in Arc User Data/*/."""
-        arc_base = ARTIFACT_PATHS["arc"]
-        user_data = os.path.join(arc_base, "User Data")
-        if not os.path.isdir(user_data):
-            return None
-
-        # Check each profile directory for a History file
-        try:
-            for entry in os.listdir(user_data):
-                profile_dir = os.path.join(user_data, entry)
-                if not os.path.isdir(profile_dir):
-                    continue
-                history_file = os.path.join(profile_dir, "History")
-                if os.path.isfile(history_file):
-                    return history_file
-        except OSError:
-            pass
-
-        return None
+        return self._find_chromium_history_db(ARTIFACT_PATHS["arc"])
 
     def detect(self) -> bool:
         return self._find_history_db() is not None
 
     def collect(self) -> List[AIArtifact]:
-        db_path = self._find_history_db()
-        if db_path is None:
-            return []
-
-        url_filter = _build_url_or_clause("u.url", AI_URL_PATTERNS)
-        query = (
-            "SELECT u.url, u.title, v.visit_time, v.visit_duration "
-            "FROM urls u JOIN visits v ON u.id = v.url "
-            "WHERE " + url_filter + " "
-            "ORDER BY v.visit_time DESC"
-        )
-
-        rows = self._safe_sqlite_read(db_path, query, tuple(AI_URL_PATTERNS))
-        artifacts = []  # type: List[AIArtifact]
-
-        for row in rows:
-            url = row.get("url", "")
-            title = row.get("title", "")
-            visit_time = row.get("visit_time")
-            visit_duration = row.get("visit_duration", 0)
-
-            ts = self._parse_chrome_timestamp(visit_time)
-            preview = self._content_preview("{} - {}".format(title, url))
-
-            metadata = {
-                "url": url,
-                "title": title,
-                "visit_duration_us": visit_duration,
-            }
-
-            artifacts.append(self._make_artifact(
-                artifact_type="browser_history",
-                timestamp=ts,
-                file_path=db_path,
-                content_preview=preview,
-                metadata=metadata,
-            ))
-
-        return artifacts
+        return self._collect_chromium_history(self._find_history_db())

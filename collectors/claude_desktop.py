@@ -3,32 +3,15 @@
 import json
 import os
 import re
-import sqlite3
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from collectors.base import AbstractCollector
+from collectors.mixins import ElectronAppMixin
 from config import ARTIFACT_PATHS
 from normalizer import sanitize_content
 
-# Keys in LevelDB that may contain credentials -- filter from extraction
-LEVELDB_SENSITIVE_KEYS = {
-    "token", "auth", "cookie", "session", "password",
-    "secret", "credential", "oauth",
-}
 
-
-def _filter_leveldb_strings(strings):
-    """Remove LevelDB entries whose content contains sensitive key names."""
-    filtered = []
-    for entry in strings:
-        content_lower = entry.get("content", "").lower()
-        if any(key in content_lower for key in LEVELDB_SENSITIVE_KEYS):
-            continue
-        filtered.append(entry)
-    return filtered
-
-
-class ClaudeDesktopCollector(AbstractCollector):
+class ClaudeDesktopCollector(ElectronAppMixin, AbstractCollector):
     """Collect artifacts from the Claude Desktop Electron app.
 
     Artifact root: ~/Library/Application Support/Claude/
@@ -184,185 +167,38 @@ class ClaudeDesktopCollector(AbstractCollector):
         return results
 
     # ------------------------------------------------------------------
-    # 3. Session Storage/ -- LevelDB string extraction
+    # 3. Session Storage/ -- LevelDB string extraction (via mixin)
     # ------------------------------------------------------------------
     def _collect_session_storage(self) -> List:
         """Extract strings from Session Storage/ LevelDB.  Look for
         conversation UUIDs.  Artifact type: session_storage."""
-        results = []  # type: List[Any]
-        ss_dir = os.path.join(self._root, "Session Storage")
-        if not os.path.isdir(ss_dir):
-            return results
-
-        strings = _filter_leveldb_strings(self._extract_leveldb_strings(ss_dir))
-        uuid_pattern = re.compile(
-            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-            re.IGNORECASE,
-        )
-
-        conversation_ids = set()  # type: set
-        for entry in strings:
-            content = entry.get("content", "")
-            for match in uuid_pattern.finditer(content):
-                conversation_ids.add(match.group(0))
-
-        fmeta = self._file_metadata(ss_dir)
-
-        results.append(self._make_artifact(
-            artifact_type="session_storage",
-            file_path=ss_dir,
-            file_size_bytes=fmeta.get("file_size_bytes"),
-            file_modified=fmeta.get("file_modified"),
-            file_created=fmeta.get("file_created"),
-            content_preview="Session Storage LevelDB: {} strings extracted, {} conversation UUIDs".format(
-                len(strings), len(conversation_ids),
-            ),
-            metadata={
-                "strings_extracted": len(strings),
-                "conversation_uuids_found": len(conversation_ids),
-                "conversation_ids": sorted(conversation_ids)[:50],  # cap at 50
-                "source_files": list(set(e.get("source_file", "") for e in strings)),
-            },
-        ))
-
-        return results
+        return self._collect_electron_session_storage(self._root)
 
     # ------------------------------------------------------------------
-    # 4. Local Storage/leveldb/ -- LevelDB extraction
+    # 4. Local Storage/leveldb/ -- LevelDB extraction (via mixin)
     # ------------------------------------------------------------------
     def _collect_local_storage(self) -> List:
         """Extract strings from Local Storage/leveldb/.  Look for
         tipTapEditorState drafts.  Artifact type: local_storage."""
-        results = []  # type: List[Any]
-        ls_dir = os.path.join(self._root, "Local Storage", "leveldb")
-        if not os.path.isdir(ls_dir):
-            return results
-
-        strings = _filter_leveldb_strings(self._extract_leveldb_strings(ls_dir))
-
-        # Look for tipTapEditorState entries (draft messages)
-        drafts = []  # type: List[Dict[str, Any]]
-        for entry in strings:
-            content = entry.get("content", "")
-            if "tipTapEditorState" in content or "tiptapEditorState" in content:
-                json_data = entry.get("json_data")
-                if json_data is not None:
-                    drafts.append({
-                        "source_file": entry.get("source_file", ""),
-                        "preview": self._content_preview(content),
-                    })
-                else:
-                    drafts.append({
-                        "source_file": entry.get("source_file", ""),
-                        "preview": self._content_preview(content),
-                    })
-
-        fmeta = self._file_metadata(ls_dir)
-
-        results.append(self._make_artifact(
-            artifact_type="local_storage",
-            file_path=ls_dir,
-            file_size_bytes=fmeta.get("file_size_bytes"),
-            file_modified=fmeta.get("file_modified"),
-            file_created=fmeta.get("file_created"),
-            content_preview="Local Storage LevelDB: {} strings extracted, {} draft entries".format(
-                len(strings), len(drafts),
-            ),
-            metadata={
-                "strings_extracted": len(strings),
-                "draft_entries_found": len(drafts),
-                "drafts": drafts[:20],  # cap at 20
-                "source_files": list(set(e.get("source_file", "") for e in strings)),
-            },
-        ))
-
-        return results
+        return self._collect_electron_local_storage(self._root)
 
     # ------------------------------------------------------------------
-    # 5. IndexedDB/https_claude.ai_0.indexeddb.leveldb/ -- IndexedDB
+    # 5. IndexedDB/https_claude.ai_0.indexeddb.leveldb/ -- IndexedDB (via mixin)
     # ------------------------------------------------------------------
     def _collect_indexed_db(self) -> List:
         """Extract strings from IndexedDB LevelDB for claude.ai.
         Artifact type: indexed_db."""
-        results = []  # type: List[Any]
-        idb_dir = os.path.join(
-            self._root, "IndexedDB",
-            "https_claude.ai_0.indexeddb.leveldb",
+        return self._collect_electron_indexed_db(
+            self._root, origin_pattern="https_claude.ai_0",
         )
-        if not os.path.isdir(idb_dir):
-            return results
-
-        strings = _filter_leveldb_strings(self._extract_leveldb_strings(idb_dir))
-
-        # Categorize extracted strings
-        json_entries = [e for e in strings if "json_data" in e]
-        uuid_pattern = re.compile(
-            r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-            re.IGNORECASE,
-        )
-        conversation_ids = set()  # type: set
-        for entry in strings:
-            for match in uuid_pattern.finditer(entry.get("content", "")):
-                conversation_ids.add(match.group(0))
-
-        fmeta = self._file_metadata(idb_dir)
-
-        results.append(self._make_artifact(
-            artifact_type="indexed_db",
-            file_path=idb_dir,
-            file_size_bytes=fmeta.get("file_size_bytes"),
-            file_modified=fmeta.get("file_modified"),
-            file_created=fmeta.get("file_created"),
-            content_preview="IndexedDB: {} strings, {} JSON entries, {} UUIDs".format(
-                len(strings), len(json_entries), len(conversation_ids),
-            ),
-            metadata={
-                "strings_extracted": len(strings),
-                "json_entries": len(json_entries),
-                "conversation_uuids_found": len(conversation_ids),
-                "conversation_ids": sorted(conversation_ids)[:50],
-                "source_files": list(set(e.get("source_file", "") for e in strings)),
-            },
-        ))
-
-        return results
 
     # ------------------------------------------------------------------
-    # 6. Preferences -- JSON preferences
+    # 6. Preferences -- JSON preferences (via mixin)
     # ------------------------------------------------------------------
     def _collect_preferences(self) -> List:
         """Parse the Preferences JSON file.
         Artifact type: preferences."""
-        results = []  # type: List[Any]
-        path = os.path.join(self._root, "Preferences")
-        if not os.path.isfile(path):
-            return results
-
-        data = self._safe_read_json(path)
-        if data is None:
-            return results
-
-        fmeta = self._file_metadata(path)
-        file_hash = self._hash_file(path)
-
-        # Sanitize any credential-like content
-        sanitized_text = sanitize_content(json.dumps(data))
-
-        results.append(self._make_artifact(
-            artifact_type="preferences",
-            file_path=path,
-            file_hash_sha256=file_hash,
-            file_size_bytes=fmeta.get("file_size_bytes"),
-            file_modified=fmeta.get("file_modified"),
-            file_created=fmeta.get("file_created"),
-            content_preview=self._content_preview(sanitized_text),
-            raw_data=sanitized_text,
-            metadata={
-                "key_count": len(data) if isinstance(data, dict) else 0,
-            },
-        ))
-
-        return results
+        return self._collect_electron_preferences(self._root)
 
     # ------------------------------------------------------------------
     # 7. Conversions DB -- SQLite (135KB)

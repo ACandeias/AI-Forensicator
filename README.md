@@ -24,7 +24,7 @@ AIFT scans your macOS system for artifacts left behind by AI-powered tools -- co
 
 ### Feature Highlights
 
-- **10+ AI tool support** -- Claude Code, Claude Desktop, ChatGPT, Cursor, Chrome/Safari/Arc AI history, and more
+- **40+ AI tool support** -- Claude Code, Claude Desktop, ChatGPT, Cursor, browsers, VS Code extensions, CLI assistants, local LLM runners, and more
 - **Read-only collection** -- never modifies source files; SQLite DBs opened in immutable mode
 - **Credential redaction** -- API keys, tokens, and secrets are automatically detected and filtered
 - **Interactive TUI** -- Rich-powered terminal interface for browsing, searching, and timeline views
@@ -65,15 +65,13 @@ aift collect --dry-run
 
 ---
 
-## Screenshot / TUI Modes
+## Demo
 
-When launched without a subcommand (`python3 main.py`), AIFT opens an interactive terminal UI with:
+<p align="center">
+  <img src="assets/demo.gif" alt="AIFT Demo - Detection, Collection, Statistics, Browse, and Search" width="860">
+</p>
 
-- **Dashboard** -- summary statistics, artifact counts by source, model usage
-- **Browse** -- paginated artifact table with source/type filters
-- **Timeline** -- chronological view of AI activity with day separators
-- **Search** -- full-text search across content previews and file paths
-- **Export** -- generate reports in multiple formats
+The GIF above shows AIFT's core workflow: interactive TUI menu, dry-run detection of 41 collectors, artifact collection from 10 detected tools, statistics dashboard with source distribution and model usage, artifact browsing, and full-text search with highlighted matches.
 
 ---
 
@@ -87,17 +85,25 @@ ai_forensics/
 |-- db.py                    # SQLite (WAL mode) database layer
 |-- normalizer.py            # Timestamp normalization, sanitization
 |-- collectors/
-|   |-- __init__.py          # Collector registry
+|   |-- __init__.py          # Collector registry (~40 collectors)
 |   |-- base.py              # AbstractCollector base class
+|   |-- mixins.py            # Shared mixins (Chromium, Electron, VSCode, LLM)
 |   |-- claude_code.py       # ~/.claude/ artifacts
 |   |-- claude_desktop.py    # Claude Desktop Electron app
 |   |-- openai_chatgpt.py    # ChatGPT macOS app
+|   |-- openai_atlas.py      # OpenAI Atlas desktop app
 |   |-- cursor.py            # Cursor editor
 |   |-- browser.py           # Chrome, Safari, Arc AI history
+|   |-- brave.py             # Brave browser
+|   |-- edge.py              # Microsoft Edge browser
 |   |-- generic_logs.py      # System-wide AI log scanning
-|   |-- codex.py             # OpenAI Codex (stub)
-|   |-- copilot.py           # GitHub Copilot (stub)
-|   +-- perplexity.py        # Perplexity AI (stub)
+|   |-- codex.py             # OpenAI Codex CLI
+|   |-- copilot.py           # GitHub Copilot
+|   |-- perplexity.py        # Perplexity AI
+|   |-- lm_studio.py         # LM Studio
+|   |-- ollama.py            # Ollama
+|   |-- cline.py, roo_code.py, cody.py, ...  # VS Code extensions
+|   +-- ... (30+ more)       # See Supported Tools table
 |-- analyzers/
 |   |-- stats.py             # Summary statistics
 |   |-- timeline.py          # Chronological analysis
@@ -114,19 +120,76 @@ ai_forensics/
 
 ## Supported Tools
 
+### Core AI Tools
+
 | Tool | Status | Data Collected |
 |------|--------|----------------|
 | Claude Code | Full | Prompt history, session conversations, settings, plans, tasks, debug logs |
 | Claude Desktop | Full | MCP config, app config, session/local storage, IndexedDB, preferences, SQLite DBs |
-| ChatGPT (macOS) | Full | Conversation database |
-| Cursor | Full | Settings, workspace storage, state database |
+| ChatGPT (macOS) | Full | Encrypted conversation metadata, preferences |
+| OpenAI Atlas | Full | Encrypted conversations, plist tabs, Chromium history, profile, analytics |
+| Cursor | Full | Composer sessions, bubble messages, usage stats, auth flags |
+| Generic Logs | Full | AI keyword matches in ~/Library logs, installed AI apps |
+
+### Browsers
+
+| Tool | Status | Data Collected |
+|------|--------|----------------|
 | Chrome | Full | AI-related browsing history |
 | Safari | Full | AI-related browsing history (requires Full Disk Access) |
 | Arc | Full | AI-related browsing history |
-| Generic Logs | Full | AI keyword matches in ~/Library logs, installed AI apps |
-| Perplexity | Stub | Planned |
-| OpenAI Codex | Stub | Planned |
-| GitHub Copilot | Stub | Planned |
+| Brave | Full | AI-related browsing history |
+| Microsoft Edge | Full | AI-related browsing history |
+
+### VS Code Extensions
+
+| Tool | Status | Data Collected |
+|------|--------|----------------|
+| Cline | Full | Task conversations, API history, UI messages |
+| Roo Code | Full | Task conversations, custom modes, MCP settings |
+| Supermaven | Full | Extension storage data |
+| Sourcegraph Cody | Full | Extension data, standalone app data |
+| Tabnine | Full | VDB logs, preferences |
+
+### CLI Coding Assistants
+
+| Tool | Status | Data Collected |
+|------|--------|----------------|
+| OpenAI Codex | Full | JSONL history, session conversations, config |
+| GitHub Copilot | Full | Config, usage data |
+| Copilot CLI | Full | Command history, session state, MCP config |
+| Windsurf/Codeium | Full | State DB, Cascade conversations, Electron storage |
+| Continue.dev | Full | Config, sessions, dev data |
+| Aider | Full | Chat history transcripts, config |
+| Amazon Q Developer | Full | Chat history, CLI config, todo lists |
+
+### Local LLM Runners
+
+| Tool | Status | Data Collected |
+|------|--------|----------------|
+| LM Studio | Full | Settings, MCP config, model inventory, server logs |
+| Ollama | Full | Model manifests (names, digests, sizes), config |
+| Jan AI | Full | Conversation threads, model configs, app log |
+| GPT4All | Full | Chat history, LocalDocs metadata, model inventory |
+| Msty | Full | Chat history, model configs |
+
+### Productivity, Chat, & Creative
+
+| Tool | Status | Data Collected |
+|------|--------|----------------|
+| Perplexity | Full | Electron LevelDB/IndexedDB data |
+| Raycast AI | Full | Extension inventory, preferences |
+| Notion AI | Full | SQLite cache, Electron storage |
+| Poe | Full | Electron LevelDB/IndexedDB data |
+| Microsoft Copilot | Full | JSON/plist config (sandboxed) |
+| DiffusionBee | Full | Image inventory metadata, models, generation configs |
+| ComfyUI Desktop | Full | Workflow JSON, model config YAML |
+| Draw Things | Full | Model inventory metadata (sandboxed) |
+| Grammarly | Full | Launch agent detection, cache info, preferences |
+| Pieces | Full | Snippet inventory, context metadata, logs |
+| JetBrains AI | Full | AI assistant data across all JetBrains IDEs |
+| Warp Terminal | Full | Launch configs, AI command history, settings |
+| cagent | Full | OCI container manifests with annotations |
 
 ---
 

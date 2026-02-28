@@ -13,6 +13,9 @@ from schema import AIArtifact
 AI_DIRECTORY_NAMES = {
     "anthropic", "openai", "claude", "cursor",
     "copilot", "chatgpt", "perplexity", "gemini",
+    "lmstudio", "ollama", "cagent", "codeium", "windsurf",
+    "tabnine", "supermaven", "grammarly", "pieces",
+    "comfyui", "diffusionbee", "raycast", "msty", "jan",
 }
 
 # Keywords to grep for in log files
@@ -28,6 +31,9 @@ AI_LOG_KEYWORDS = [
 AI_APP_NAMES = [
     "claude", "chatgpt", "cursor", "copilot",
     "perplexity", "gemini", "arc",
+    "lm studio", "ollama", "diffusionbee", "comfyui",
+    "grammarly", "notion", "poe", "msty", "jan",
+    "raycast", "pieces", "windsurf", "brave", "edge",
 ]
 
 # Directories to walk

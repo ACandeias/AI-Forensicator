@@ -4,7 +4,7 @@ import os
 import re
 from typing import Dict, List
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 APP_NAME = "AIFT - AI Forensics Tool"
 
 # Database
@@ -55,6 +55,49 @@ ARTIFACT_PATHS = {
     "codex": os.path.join(HOME, ".codex"),
     "copilot": os.path.join(HOME, "Library", "Application Support", "GitHub Copilot"),
     "vscode": os.path.join(HOME, "Library", "Application Support", "Code"),
+    # --- Phase 2: High-value ---
+    "openai_atlas": os.path.join(HOME, "Library", "Application Support", "com.openai.atlas"),
+    "lm_studio": os.path.join(HOME, ".lmstudio"),
+    "cagent": os.path.join(HOME, ".cagent"),
+
+    # --- Phase 3: Browsers ---
+    "brave": os.path.join(HOME, "Library", "Application Support", "BraveSoftware", "Brave-Browser"),
+    "edge": os.path.join(HOME, "Library", "Application Support", "Microsoft Edge"),
+
+    # --- Phase 4: VS Code extensions ---
+    "tabnine": os.path.join(HOME, "Library", "Application Support", "TabNine"),
+
+    # --- Phase 5: CLI assistants ---
+    "windsurf": os.path.join(HOME, "Library", "Application Support", "Windsurf"),
+    "codeium": os.path.join(HOME, ".codeium"),
+    "continue_dev": os.path.join(HOME, ".continue"),
+    "aider": os.path.join(HOME, ".aider"),
+    "amazon_q": os.path.join(HOME, ".aws", "amazonq"),
+    "amazon_q_cli": os.path.join(HOME, ".amazonq"),
+    "copilot_cli": os.path.join(HOME, ".copilot"),
+
+    # --- Phase 6: Local LLM runners ---
+    "ollama": os.path.join(HOME, ".ollama"),
+    "jan": os.path.join(HOME, "jan"),
+    "jan_app_support": os.path.join(HOME, "Library", "Application Support", "Jan"),
+    "gpt4all": os.path.join(HOME, ".local", "share", "nomic.ai", "GPT4All"),
+    "msty": os.path.join(HOME, "Library", "Application Support", "Msty"),
+
+    # --- Phase 7: Productivity, Chat, Creative ---
+    "raycast": os.path.join(HOME, "Library", "Application Support", "com.raycast.macos"),
+    "notion": os.path.join(HOME, "Library", "Application Support", "Notion"),
+    "poe": os.path.join(HOME, "Library", "Application Support", "com.quora.poe.electron"),
+    "ms_copilot": os.path.join(HOME, "Library", "Containers", "com.microsoft.copilot"),
+    "diffusionbee": os.path.join(HOME, ".diffusionbee"),
+    "comfyui": os.path.join(HOME, "Library", "Application Support", "ComfyUI"),
+    "draw_things": os.path.join(HOME, "Library", "Containers", "com.liuliu.draw-things"),
+    "grammarly": os.path.join(HOME, "Library", "Application Support", "com.grammarly.ProjectLlama"),
+    "pieces": os.path.join(HOME, "Library", "com.pieces.os"),
+    "jetbrains_caches": os.path.join(HOME, "Library", "Caches", "JetBrains"),
+    "warp": os.path.join(HOME, ".warp"),
+    "warp_app_support": os.path.join(HOME, "Library", "Application Support", "dev.warp.Warp-Stable"),
+    "perplexity_container": os.path.join(HOME, "Library", "Containers", "ai.perplexity.mac"),
+    "cody_app": os.path.join(HOME, "Library", "Application Support", "com.sourcegraph.cody"),
 }
 
 # Browser AI URL patterns for filtering history
@@ -78,6 +121,25 @@ AI_URL_PATTERNS = [
     "%bolt.new%",
     "%replit.com%",
     "%labs.google.com%",
+    # New patterns
+    "%sourcegraph.com%",
+    "%codeium.com%",
+    "%windsurf.com%",
+    "%continue.dev%",
+    "%aider.chat%",
+    "%lmstudio.ai%",
+    "%ollama.com%",
+    "%jan.ai%",
+    "%gpt4all.io%",
+    "%msty.app%",
+    "%pieces.app%",
+    "%grammarly.com%",
+    "%diffusionbee.com%",
+    "%comfyui.org%",
+    "%raycast.com%",
+    "%notion.so%",
+    "%tabnine.com%",
+    "%brave.com%",
 ]
 
 # Model identification patterns
@@ -89,4 +151,9 @@ MODEL_PATTERNS = [
     re.compile(r'(llama-[\w.-]+)', re.IGNORECASE),
     re.compile(r'(mistral-[\w.-]+)', re.IGNORECASE),
     re.compile(r'(command-r[\w.-]*)', re.IGNORECASE),
+    # New model patterns
+    re.compile(r'(qwen[\w.-]+)', re.IGNORECASE),
+    re.compile(r'(deepseek[\w.-]+)', re.IGNORECASE),
+    re.compile(r'(phi-[\w.-]+)', re.IGNORECASE),
+    re.compile(r'(starcoder[\w.-]+)', re.IGNORECASE),
 ]
