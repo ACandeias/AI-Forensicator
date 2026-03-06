@@ -1,5 +1,6 @@
 """AIFT data models: AIArtifact and CollectionRun dataclasses."""
 
+import hashlib
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
@@ -12,6 +13,29 @@ def _utc_now_iso() -> str:
 
 def _new_uuid() -> str:
     return str(uuid.uuid4())
+
+
+def _deterministic_id(
+    source_tool: str,
+    artifact_type: str,
+    timestamp: Optional[str] = None,
+    file_path: Optional[str] = None,
+    content_preview: Optional[str] = None,
+    conversation_id: Optional[str] = None,
+    message_role: Optional[str] = None,
+) -> str:
+    """Generate a deterministic ID from artifact content so duplicates are ignored."""
+    parts = [
+        source_tool or "",
+        artifact_type or "",
+        timestamp or "",
+        file_path or "",
+        content_preview or "",
+        conversation_id or "",
+        message_role or "",
+    ]
+    key = "|".join(parts).encode("utf-8", errors="replace")
+    return hashlib.sha256(key).hexdigest()[:32]
 
 
 @dataclass
@@ -36,6 +60,19 @@ class AIArtifact:
     token_estimate: Optional[int] = None
     metadata: Optional[str] = None  # JSON string
     collection_timestamp: str = field(default_factory=_utc_now_iso)
+
+    def __post_init__(self) -> None:
+        # Replace random UUID with a deterministic ID so duplicate
+        # artifacts are naturally deduplicated on INSERT OR IGNORE.
+        self.id = _deterministic_id(
+            source_tool=self.source_tool,
+            artifact_type=self.artifact_type,
+            timestamp=self.timestamp,
+            file_path=self.file_path,
+            content_preview=self.content_preview,
+            conversation_id=self.conversation_id,
+            message_role=self.message_role,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
