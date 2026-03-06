@@ -14,12 +14,12 @@ class TestAIArtifact:
     """Tests for the AIArtifact dataclass."""
 
     def test_creation_with_defaults(self):
-        """AIArtifact should auto-generate id (UUID) and collection_timestamp."""
+        """AIArtifact should auto-generate a deterministic id and collection_timestamp."""
         artifact = AIArtifact(source_tool="test_tool", artifact_type="test_type")
 
-        # id should be a valid UUID string
-        parsed = uuid.UUID(artifact.id)
-        assert str(parsed) == artifact.id
+        # id should be a 32-char hex string (deterministic SHA-256 prefix)
+        assert len(artifact.id) == 32
+        assert all(c in "0123456789abcdef" for c in artifact.id)
 
         # collection_timestamp should be set (ISO-8601 string)
         assert artifact.collection_timestamp is not None
@@ -79,10 +79,16 @@ class TestAIArtifact:
         assert d["model_identified"] == "gpt-4"
         assert d["token_estimate"] == 1234
 
-    def test_unique_ids(self):
-        """Each AIArtifact should get a unique id."""
-        a1 = AIArtifact(source_tool="a", artifact_type="b")
-        a2 = AIArtifact(source_tool="a", artifact_type="b")
+    def test_deterministic_ids(self):
+        """Artifacts with identical key fields should get the same id (dedup)."""
+        a1 = AIArtifact(source_tool="a", artifact_type="b", timestamp="t1")
+        a2 = AIArtifact(source_tool="a", artifact_type="b", timestamp="t1")
+        assert a1.id == a2.id
+
+    def test_different_content_different_ids(self):
+        """Artifacts with different key fields should get different ids."""
+        a1 = AIArtifact(source_tool="a", artifact_type="b", timestamp="t1")
+        a2 = AIArtifact(source_tool="a", artifact_type="b", timestamp="t2")
         assert a1.id != a2.id
 
 
